@@ -14,23 +14,18 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // Lazy initialize Gemini AI client safely
 let aiClient: GoogleGenAI | null = null;
+let isKeyInvalid = false;
+
 function getGenAI(): GoogleGenAI | null {
+  if (isKeyInvalid) return null;
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === "dummy-key" || apiKey.trim() === "") {
+  if (!apiKey || apiKey === "dummy-key" || apiKey.trim() === "" || apiKey === "MY_GEMINI_API_KEY") {
     return null;
   }
   if (!aiClient) {
     try {
-      aiClient = new GoogleGenAI({
-        apiKey,
-        httpOptions: {
-          headers: {
-            "User-Agent": "aistudio-build",
-          },
-        },
-      });
-    } catch (e) {
-      console.warn("Could not create GoogleGenAI instance:", e);
+      aiClient = new GoogleGenAI({ apiKey });
+    } catch {
       return null;
     }
   }
@@ -410,7 +405,10 @@ Retorne EXATAMENTE no formato JSON com a estrutura solicitada.`;
       analysis: { ...fallbackData, ...parsed },
     });
   } catch (err: any) {
-    console.warn("[Gemini analyze-video fallback engaged]:", err.message);
+    if (err?.status === 401 || err?.message?.includes("401") || err?.message?.includes("UNAUTHENTICATED")) {
+      isKeyInvalid = true;
+      aiClient = null;
+    }
     return res.json({
       success: true,
       source: "engine_strategist_fallback",
@@ -565,7 +563,10 @@ Retorne EXATAMENTE no formato JSON com o schema especificado.`;
       package: { ...fallbackPackage, ...pkg },
     });
   } catch (err: any) {
-    console.warn("[Gemini generate-package fallback engaged]:", err.message);
+    if (err?.status === 401 || err?.message?.includes("401") || err?.message?.includes("UNAUTHENTICATED")) {
+      isKeyInvalid = true;
+      aiClient = null;
+    }
     return res.json({
       success: true,
       source: "engine_strategist_fallback",
@@ -616,7 +617,10 @@ Regras:
     const refinedText = response.text?.trim() || fallbackRefined;
     return res.json({ success: true, refinedText });
   } catch (err: any) {
-    console.warn("[Gemini refine-copy fallback engaged]:", err.message);
+    if (err?.status === 401 || err?.message?.includes("401") || err?.message?.includes("UNAUTHENTICATED")) {
+      isKeyInvalid = true;
+      aiClient = null;
+    }
     return res.json({ success: true, refinedText: fallbackRefined });
   }
 });
@@ -677,7 +681,10 @@ Retorne JSON com:
     const parsed = JSON.parse(response.text || "{}");
     return res.json({ success: true, ...parsed });
   } catch (err: any) {
-    console.warn("[Gemini anti-repetition fallback engaged]:", err.message);
+    if (err?.status === 401 || err?.message?.includes("401") || err?.message?.includes("UNAUTHENTICATED")) {
+      isKeyInvalid = true;
+      aiClient = null;
+    }
     return res.json({ success: true, ...fallbackResult });
   }
 });
