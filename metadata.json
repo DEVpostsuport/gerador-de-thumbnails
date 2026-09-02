@@ -1,0 +1,6 @@
+{
+  "name": "CATEGORIA FILMES — VIRAL CONTENT ENGINE",
+  "description": "Plataforma profissional de inteligência e produção em lote de conteúdo viral e thumbnails para canais de filmes e séries (Melhores Momentos).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
